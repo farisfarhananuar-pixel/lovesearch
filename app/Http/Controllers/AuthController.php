@@ -57,6 +57,14 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
+        // Cuba login sebagai Admin dahulu (field 'phone' digunakan semula sebagai username admin)
+        if (Auth::guard('admin')->attempt(['username' => $credentials['phone'], 'password' => $credentials['password']])) {
+            $request->session()->regenerate();
+
+            return redirect()->intended(route('admin.dashboard'));
+        }
+
+        // Kalau bukan admin, cuba login sebagai User biasa
         if (Auth::guard('web')->attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
@@ -64,7 +72,7 @@ class AuthController extends Controller
         }
 
         return back()->withErrors([
-            'phone' => 'Nombor telefon atau kata laluan salah.',
+            'phone' => 'Nombor telefon/username atau kata laluan salah.',
         ])->onlyInput('phone');
     }
 

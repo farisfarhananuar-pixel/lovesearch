@@ -19,7 +19,7 @@
         @csrf
         <div class="field">
             <label>Nombor Telefon</label>
-            <input type="tel" name="phone" value="{{ old('phone') }}" placeholder="0123456789" required autofocus>
+            <input type="text" name="phone" value="{{ old('phone') }}" placeholder="0123456789" required autofocus>
         </div>
         <div class="field">
             <label>Kata Laluan</label>
