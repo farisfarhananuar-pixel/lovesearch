@@ -37,4 +37,26 @@
     </div>
 </div>
 
+<div class="card" style="margin-top:18px;">
+    <div style="font-weight:700; margin-bottom:10px; color:var(--pink-dark);">Sejarah Sembang</div>
+    @if ($matchHistory->isEmpty())
+        <div style="font-size:13.5px; color:var(--text-soft);">Belum ada sejarah sembang lagi.</div>
+    @else
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            @foreach ($matchHistory as $h)
+                <a href="{{ route('match.show', $h['id']) }}" style="display:flex; align-items:center; gap:12px; text-decoration:none; padding:10px 12px; border-radius:12px; background:var(--pink-light);">
+                    <div style="width:38px; height:38px; border-radius:50%; background:var(--white); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
+                        {{ $h['revealed'] ? '😍' : '❓' }}
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:700; color:var(--text); font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $h['name'] }}</div>
+                        <div style="font-size:11.5px; color:var(--text-soft);">Sembang tamat • {{ $h['ended_at']?->format('d/m/Y H:i') }}</div>
+                    </div>
+                    <div style="color:var(--pink-dark); font-size:18px;">›</div>
+                </a>
+            @endforeach
+        </div>
+    @endif
+</div>
+
 @endsection

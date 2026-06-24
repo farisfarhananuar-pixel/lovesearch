@@ -57,11 +57,11 @@ Route::middleware('auth')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('admin')->name('admin.')->group(function () {
-    // Login admin sekarang guna page /login yang sama dengan user (lihat AuthController::login).
-    // Route /admin/login dikekalkan sebagai redirect untuk bookmark lama.
-    Route::get('/login', function () {
-        return redirect()->route('login');
-    })->name('login');
+    // Page login admin yang berasingan (ada butang "Log Masuk sebagai Admin" di page login user).
+    Route::middleware('guest:admin')->group(function () {
+        Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
+        Route::post('/login', [AdminAuthController::class, 'login'])->name('login.submit');
+    });
 
     Route::middleware('auth:admin')->group(function () {
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');

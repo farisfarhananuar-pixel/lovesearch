@@ -9,6 +9,7 @@
 <body>
 
 <div class="chat-header">
+    <a href="{{ route('dashboard') }}" class="chat-home-btn" title="Kembali ke Utama">🏠</a>
     <div class="chat-avatar" id="avatarBox">{{ $revealed ? '😍' : '❓' }}</div>
     <div class="who">
         <div class="name" id="partnerName">{{ $revealed ? $partner->full_name : 'Misteri' }}</div>

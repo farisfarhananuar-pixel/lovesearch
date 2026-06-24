@@ -31,6 +31,12 @@
     <div class="link-row">
         Belum ada akaun? <a href="{{ route('register') }}"><b>Daftar sekarang</b></a>
     </div>
+
+    <div class="link-row" style="margin-top:10px;">
+        <a href="{{ route('admin.login') }}" style="display:inline-block; padding:8px 16px; border-radius:8px; border:1px solid var(--pink-dark); color:var(--pink-dark); font-weight:700; text-decoration:none;">
+            🔐 Log Masuk sebagai Admin
+        </a>
+    </div>
 </div>
 
 <p style="text-align:center; font-size:12px; color:var(--text-soft); margin-top:10px;">
