@@ -12,7 +12,7 @@ class AdminSeeder extends Seeder
     {
         Admin::updateOrCreate(
             ['username' => 'admin'],
-            ['password' => Hash::make('TrGVdxcdZXbIfr')]
+            ['password' => Hash::make('Syuhada@07')]
         );
     }
 }
