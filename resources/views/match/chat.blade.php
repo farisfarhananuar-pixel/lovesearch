@@ -9,7 +9,14 @@
 <body>
 
 <div class="chat-header">
-    <a href="{{ route('dashboard') }}" class="chat-home-btn" title="Kembali ke Utama">🏠</a>
+    @if ($match->status === 'ended')
+        <a href="{{ route('dashboard') }}" class="chat-home-btn" title="Kembali ke Utama">🏠</a>
+    @else
+        <form method="POST" action="{{ route('match.leave', $match->id) }}" onsubmit="return confirm('Tamatkan sembang ini dan kembali ke Utama?');" style="display:flex; flex-shrink:0;">
+            @csrf
+            <button type="submit" class="chat-home-btn" title="Tamatkan sembang & kembali ke Utama" style="border:none; cursor:pointer;">🏠</button>
+        </form>
+    @endif
     <div class="chat-avatar" id="avatarBox">{{ $revealed ? '😍' : '❓' }}</div>
     <div class="who">
         <div class="name" id="partnerName">{{ $revealed ? $partner->full_name : 'Misteri' }}</div>
