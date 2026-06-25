@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
@@ -23,10 +25,14 @@ class AuthController extends Controller
             'password' => ['required', 'string', Password::min(6)],
             'gender' => ['required', 'in:lelaki,perempuan'],
             'race' => ['required', 'in:melayu,cina,india'],
+            'age' => ['required', 'integer', 'min:18', 'max:100'],
+            'semester' => ['required', 'integer', 'min:1', 'max:20'],
             'age_confirmed' => ['accepted'],
         ], [
             'age_confirmed.accepted' => 'Anda mesti sahkan umur 18 tahun ke atas untuk daftar.',
             'phone.unique' => 'Nombor telefon ini sudah didaftarkan.',
+            'age.min' => 'Anda mesti berumur 18 tahun ke atas untuk daftar.',
+            'semester.required' => 'Sila masukkan semester pengajian anda.',
         ]);
 
         $user = User::create([
@@ -35,14 +41,27 @@ class AuthController extends Controller
             'password' => Hash::make($validated['password']),
             'gender' => $validated['gender'],
             'race' => $validated['race'],
+            'age' => $validated['age'],
+            'semester' => $validated['semester'],
             'age_confirmed' => true,
             'credits' => 5,
             'last_free_topup_month' => now()->format('Y-m'),
+            'friend_code' => $this->generateFriendCode(),
         ]);
 
         Auth::guard('web')->login($user);
 
         return redirect()->route('dashboard')->with('status', 'Pendaftaran berjaya! Selamat mencari jodoh, '.$user->full_name.' 💕');
+    }
+
+    private function generateFriendCode(): string
+    {
+        do {
+            $code = Str::upper(Str::random(2)).rand(1000, 9999);
+            $exists = DB::table('users')->where('friend_code', $code)->exists();
+        } while ($exists);
+
+        return $code;
     }
 
     public function showLogin()

@@ -6,8 +6,10 @@ use App\Http\Controllers\Admin\PaymentController as AdminPaymentController;
 use App\Http\Controllers\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FriendController;
 use App\Http\Controllers\MatchController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -45,6 +47,23 @@ Route::middleware('auth')->group(function () {
     Route::get('/match/{match}/poll', [MatchController::class, 'poll'])->name('match.poll');
     Route::post('/match/{match}/love', [MatchController::class, 'love'])->name('match.love');
     Route::post('/match/{match}/leave', [MatchController::class, 'leave'])->name('match.leave');
+    Route::post('/match/{match}/block', [MatchController::class, 'block'])->name('match.block');
+    Route::post('/match/{match}/unblock', [MatchController::class, 'unblock'])->name('match.unblock');
+    Route::post('/match/{match}/unfriend', [MatchController::class, 'unfriend'])->name('match.unfriend');
+
+    // Kawan / Contacts
+    Route::get('/friends', [FriendController::class, 'index'])->name('friends.index');
+    Route::get('/friends/search', [FriendController::class, 'searchForm'])->name('friends.search');
+    Route::post('/friends/search', [FriendController::class, 'search'])->name('friends.search.submit');
+    Route::post('/friends/request/{targetUser}', [FriendController::class, 'sendRequest'])->name('friends.request.send');
+    Route::post('/friends/request/{friendRequest}/cancel', [FriendController::class, 'cancelSentRequest'])->name('friends.request.cancel');
+    Route::post('/friends/request/{friendRequest}/accept', [FriendController::class, 'accept'])->name('friends.request.accept');
+    Route::post('/friends/request/{friendRequest}/decline', [FriendController::class, 'decline'])->name('friends.request.decline');
+
+    // Profil
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/photo/remove', [ProfileController::class, 'removePhoto'])->name('profile.photo.remove');
 
     Route::get('/payment', [PaymentController::class, 'index'])->name('payment.index');
     Route::post('/payment', [PaymentController::class, 'submit'])->name('payment.submit');

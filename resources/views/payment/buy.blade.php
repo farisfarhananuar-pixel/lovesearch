@@ -3,7 +3,7 @@
 @section('content')
 
 <div class="hero">
-    <div class="heart">💎</div>
+    <div class="heart-wrap"><span class="heart">💎</span></div>
     <h1>Tambah Credit</h1>
     <p>Credit percuma dah habis? Tambah sikit untuk terus cari jodoh anda.</p>
 </div>
@@ -34,12 +34,12 @@
             </div>
         </div>
 
-        @if ($qrPath)
+        @if ($qrData)
             <p style="font-size:13px; color:var(--text-soft); text-align:center; margin-bottom:6px;">
                 Imbas QR di bawah untuk bayar:
             </p>
             <div class="qr-box">
-                <img src="{{ asset('storage/' . $qrPath) }}" alt="QR Code Bayaran">
+                <img src="{{ $qrData }}" alt="QR Code Bayaran">
             </div>
         @else
             <p style="font-size:13px; color:#c4304a; text-align:center; margin-bottom:14px;">

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Payment;
 use App\Models\Setting;
+use App\Support\ImageCompressor;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
@@ -15,12 +16,12 @@ class PaymentController extends Controller
 
     public function index(Request $request)
     {
-        $qrPath = Setting::get('qr_code_path');
+        $qrData = Setting::get('qr_code_data');
         $payments = $request->user()->payments()->latest()->take(5)->get();
 
         return view('payment.buy', [
             'packages' => self::PACKAGES,
-            'qrPath' => $qrPath,
+            'qrData' => $qrData,
             'recentPayments' => $payments,
         ]);
     }
@@ -37,14 +38,17 @@ class PaymentController extends Controller
         ]);
 
         $package = self::PACKAGES[$validated['package']];
-        $path = $request->file('receipt')->store('receipts', 'public');
+
+        // Resit disimpan terus dalam DB (base64) supaya tak hilang walaupun
+        // storage server di-reset semasa redeploy.
+        $receiptData = ImageCompressor::toDataUri($request->file('receipt'), 'document', 700);
 
         Payment::create([
             'user_id' => $request->user()->id,
             'payer_full_name' => $validated['payer_full_name'],
             'package_credits' => $package['credits'],
             'package_price' => $package['price'],
-            'receipt_path' => $path,
+            'receipt_data' => $receiptData,
             'status' => 'pending',
         ]);
 

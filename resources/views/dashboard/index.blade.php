@@ -2,23 +2,57 @@
 @section('title', 'Utama - Carian Jodoh')
 @section('content')
 
-<div class="hero" style="padding-top:18px; padding-bottom:6px;">
-    <h1 style="font-size:21px;">Hai, {{ explode(' ', $user->full_name)[0] }} 👋</h1>
+<div class="hero" style="padding-top:14px; padding-bottom:4px;">
+    <h1 style="font-size:21px;">Hai, {{ explode(' ', $user->displayName())[0] }} 👋</h1>
     <p>Tekan butang di bawah untuk dipadankan secara rawak dengan seseorang.</p>
 </div>
 
-<div class="stat-row">
-    <div class="credit-badge">💎 {{ $user->credits }} carian baki bulan ini</div>
-</div>
+@if ($pendingRequestsCount > 0)
+    <a href="{{ route('friends.index') }}" class="friend-item in-lilac" style="margin-top:6px;">
+        <div class="avatar size-sm" style="background:var(--grad-plum); color:#fff;">🔔</div>
+        <div class="meta">
+            <div class="name">{{ $pendingRequestsCount }} permintaan kawan menunggu</div>
+            <div class="preview">Tekan untuk lihat & terima</div>
+        </div>
+        <div class="chev" style="color:var(--plum);">›</div>
+    </a>
+@endif
+
+<details class="pref-panel">
+    <summary>🎯 Keutamaan padanan (optional)</summary>
+    <div class="pref-body">
+        <p style="font-size:12px; color:var(--text-soft); margin:0 0 10px;">Tetapkan julat umur/semester yang anda mahu dipadankan. Boleh tinggalkan kosong kalau tak kisah.</p>
+        <form method="POST" action="{{ route('match.search') }}" id="search-form">
+            @csrf
+            <div class="field-row">
+                <div class="field">
+                    <label>Umur dari</label>
+                    <input type="number" name="pref_min_age" min="18" max="100" placeholder="18">
+                </div>
+                <div class="field">
+                    <label>Umur hingga</label>
+                    <input type="number" name="pref_max_age" min="18" max="100" placeholder="30">
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label>Semester dari</label>
+                    <input type="number" name="pref_min_semester" min="1" max="20" placeholder="1">
+                </div>
+                <div class="field">
+                    <label>Semester hingga</label>
+                    <input type="number" name="pref_max_semester" min="1" max="20" placeholder="8">
+                </div>
+            </div>
+        </form>
+    </div>
+</details>
 
 <div class="search-btn-wrap">
-    <form method="POST" action="{{ route('match.search') }}">
-        @csrf
-        <button class="big-search-btn" type="submit" {{ $user->credits < 1 ? 'disabled' : '' }}>
-            <span class="icon">💘</span>
-            Cari Jodoh
-        </button>
-    </form>
+    <button class="big-search-btn" type="submit" form="search-form" {{ $user->credits < 1 ? 'disabled' : '' }}>
+        <span class="icon">💘</span>
+        Cari Jodoh
+    </button>
 </div>
 
 @if ($user->credits < 1)
@@ -28,31 +62,61 @@
 @endif
 
 <div class="card" style="margin-top:24px;">
-    <div style="font-weight:700; margin-bottom:10px; color:var(--pink-dark);">Cara ia berfungsi</div>
-    <div style="font-size:13.5px; color:var(--text-soft); line-height:1.7;">
-        1️⃣ Tekan "Cari Jodoh" - sistem akan padankan anda secara rawak (jantina lawan, bangsa sama).<br>
-        2️⃣ Anda akan sembang sebagai "Misteri" - identiti dirahsiakan, ada masa 2 minit.<br>
-        3️⃣ Kalau dua-dua tekan ❤️ Suka, nama sebenar akan didedahkan dan sembang jadi tanpa had masa.<br>
-        4️⃣ Setiap carian guna 1 credit. Dapat 5 percuma tiap bulan.
+    <div class="section-title">
+        Senarai Kawan
+        @if ($friendPreview->isNotEmpty())
+            <a href="{{ route('friends.index') }}" class="see-all">Lihat semua ›</a>
+        @endif
+    </div>
+
+    @if ($friendPreview->isEmpty())
+        <div style="font-size:13.5px; color:var(--text-soft);">
+            Belum ada kawan lagi. Bila dua-dua tekan ❤️ Suka semasa sembang, kalian akan jadi kawan kekal di sini -
+            atau <a href="{{ route('friends.search') }}"><b>cari kawan ikut kod</b></a>.
+        </div>
+    @else
+        @foreach ($friendPreview as $f)
+            <a href="{{ route('match.show', $f['match_id']) }}" class="friend-item">
+                <div class="avatar size-sm ring" @if($f['partner']->profile_photo) style="background-image:url('{{ $f['partner']->profile_photo }}')" @endif>
+                    @if (!$f['partner']->profile_photo) {{ $f['partner']->avatarFallback() }} @endif
+                </div>
+                <div class="meta">
+                    <div class="name">
+                        {{ $f['partner']->displayName() }}
+                        @if ($f['blocked']) <span class="tag blocked">Disekat</span> @endif
+                    </div>
+                    <div class="preview">{{ $f['last_message']->body ?? 'Mula sembang dengan kawan baru anda!' }}</div>
+                </div>
+                <div class="chev">›</div>
+            </a>
+        @endforeach
+    @endif
+</div>
+
+<div class="card">
+    <div class="section-title">Cara ia berfungsi</div>
+    <div class="steps-list">
+        <div class="step"><div class="num">1</div><p>Tekan "Cari Jodoh" - sistem padankan anda secara rawak (jantina lawan, bangsa sama, ikut keutamaan kalau ada).</p></div>
+        <div class="step"><div class="num">2</div><p>Anda sembang sebagai "Misteri" - identiti dirahsiakan, ada masa 2 minit.</p></div>
+        <div class="step"><div class="num">3</div><p>Kalau dua-dua tekan ❤️ Suka, nama & gambar profil didedahkan dan kalian jadi <b>kawan kekal</b> - boleh sembang tanpa had bila-bila masa.</p></div>
+        <div class="step"><div class="num">4</div><p>Setiap carian guna 1 credit. Dapat 5 percuma tiap bulan.</p></div>
     </div>
 </div>
 
-<div class="card" style="margin-top:18px;">
-    <div style="font-weight:700; margin-bottom:10px; color:var(--pink-dark);">Sejarah Sembang</div>
+<div class="card">
+    <div class="section-title">Sejarah Sembang Misteri</div>
     @if ($matchHistory->isEmpty())
         <div style="font-size:13.5px; color:var(--text-soft);">Belum ada sejarah sembang lagi.</div>
     @else
-        <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; flex-direction:column; gap:8px;">
             @foreach ($matchHistory as $h)
-                <a href="{{ route('match.show', $h['id']) }}" style="display:flex; align-items:center; gap:12px; text-decoration:none; padding:10px 12px; border-radius:12px; background:var(--pink-light);">
-                    <div style="width:38px; height:38px; border-radius:50%; background:var(--white); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
-                        {{ $h['revealed'] ? '😍' : '❓' }}
+                <a href="{{ route('match.show', $h['id']) }}" class="friend-item">
+                    <div class="avatar size-sm">{{ $h['revealed'] ? '😍' : '❓' }}</div>
+                    <div class="meta">
+                        <div class="name">{{ $h['name'] }}</div>
+                        <div class="preview">Sembang tamat • {{ $h['ended_at']?->format('d/m/Y H:i') }}</div>
                     </div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-weight:700; color:var(--text); font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $h['name'] }}</div>
-                        <div style="font-size:11.5px; color:var(--text-soft);">Sembang tamat • {{ $h['ended_at']?->format('d/m/Y H:i') }}</div>
-                    </div>
-                    <div style="color:var(--pink-dark); font-size:18px;">›</div>
+                    <div class="chev">›</div>
                 </a>
             @endforeach
         </div>

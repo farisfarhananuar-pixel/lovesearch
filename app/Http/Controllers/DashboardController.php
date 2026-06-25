@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\MatchSession;
+use App\Models\QueueEntry;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -12,11 +13,14 @@ class DashboardController extends Controller
         $user = $request->user();
         $user->refreshMonthlyCredits();
 
-        // Kalau ada match aktif/revealed yang belum berakhir, terus bawa ke chat.
+        // Hanya sesi "active" (sembang misteri yang masih berdetik 2 minit) yang
+        // memaksa redirect terus ke chat. Sesi "revealed" (kawan) tak lagi
+        // memaksa redirect - ia muncul dalam senarai Kawan dan boleh dibuka
+        // bila-bila masa mereka mahu.
         $activeMatch = MatchSession::where(function ($q) use ($user) {
                 $q->where('user_a_id', $user->id)->orWhere('user_b_id', $user->id);
             })
-            ->whereIn('status', ['active', 'revealed'])
+            ->where('status', 'active')
             ->latest()
             ->first();
 
@@ -29,13 +33,34 @@ class DashboardController extends Controller
             return redirect()->route('match.show', $activeMatch->id);
         }
 
-        $inQueue = \App\Models\QueueEntry::where('user_id', $user->id)->exists();
+        $inQueue = QueueEntry::where('user_id', $user->id)->exists();
 
         if ($inQueue) {
             return redirect()->route('match.waiting');
         }
 
-        // Riwayat padanan lepas (yang dah tamat) - supaya user nampak sapa je yang pernah disembang.
+        // Pratonton ringkas senarai kawan (3 terbaru) - senarai penuh ada di /friends.
+        $friendPreview = $user->friendSessions()
+            ->with(['userA', 'userB', 'lastMessage'])
+            ->get()
+            ->map(function (MatchSession $m) use ($user) {
+                $partner = $m->partnerOf($user);
+
+                return [
+                    'match_id' => $m->id,
+                    'partner' => $partner,
+                    'last_message' => $m->lastMessage,
+                    'sort_time' => $m->lastMessage?->created_at ?? $m->revealed_at,
+                    'blocked' => $m->isBlocked(),
+                ];
+            })
+            ->sortByDesc('sort_time')
+            ->take(3)
+            ->values();
+
+        $pendingRequestsCount = $user->receivedFriendRequests()->where('status', 'pending')->count();
+
+        // Riwayat padanan misteri lepas (yang dah tamat tanpa jadi kawan) - sapa je yang pernah disembang.
         $matchHistory = MatchSession::where(function ($q) use ($user) {
                 $q->where('user_a_id', $user->id)->orWhere('user_b_id', $user->id);
             })
@@ -48,12 +73,12 @@ class DashboardController extends Controller
 
                 return [
                     'id' => $m->id,
-                    'name' => $m->isRevealed() ? $partner->full_name : 'Misteri (tidak terdedah)',
+                    'name' => $m->isRevealed() ? $partner->displayName() : 'Misteri (tidak terdedah)',
                     'revealed' => $m->isRevealed(),
                     'ended_at' => $m->ended_at,
                 ];
             });
 
-        return view('dashboard.index', compact('user', 'matchHistory'));
+        return view('dashboard.index', compact('user', 'matchHistory', 'friendPreview', 'pendingRequestsCount'));
     }
 }

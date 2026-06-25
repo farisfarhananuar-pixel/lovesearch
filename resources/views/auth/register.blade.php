@@ -3,7 +3,7 @@
 @section('content')
 
 <div class="hero" style="padding-top:24px;">
-    <div class="heart">💘</div>
+    <div class="heart-wrap"><span class="heart">💘</span></div>
     <h1>Mulakan Cerita Cinta Anda</h1>
     <p>Identiti anda akan dirahsiakan sehingga kalian berdua sama-sama tekan ❤️ Suka.</p>
 </div>
@@ -49,6 +49,19 @@
             </div>
             <div style="font-size:11px;color:var(--text-soft);margin-top:4px;">Sistem akan padankan anda dengan bangsa yang sama.</div>
             @error('race') <div class="error-text">{{ $message }}</div> @enderror
+        </div>
+
+        <div class="field-row">
+            <div class="field">
+                <label>Umur</label>
+                <input type="number" name="age" min="18" max="100" value="{{ old('age') }}" placeholder="Cth: 21" required>
+                @error('age') <div class="error-text">{{ $message }}</div> @enderror
+            </div>
+            <div class="field">
+                <label>Semester</label>
+                <input type="number" name="semester" min="1" max="20" value="{{ old('semester') }}" placeholder="Cth: 3" required>
+                @error('semester') <div class="error-text">{{ $message }}</div> @enderror
+            </div>
         </div>
 
         <label class="checkbox-row">

@@ -3,7 +3,7 @@
 @section('content')
 
 <div class="hero">
-    <div class="heart">📋</div>
+    <div class="heart-wrap"><span class="heart">📋</span></div>
     <h1>Sejarah Pembayaran</h1>
     <p>Senarai semua transaksi credit anda.</p>
 </div>

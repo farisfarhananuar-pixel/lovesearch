@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class MatchController extends Controller
 {
-    // Bila user tekan butang "Cari Jodoh"
+    // Bila user tekan butang "Cari Jodoh" (boleh sertakan keutamaan umur/semester - optional)
     public function search(Request $request)
     {
         $user = $request->user();
@@ -25,14 +25,60 @@ class MatchController extends Controller
                 ->with('error', 'Credit anda dah habis. Beli credit untuk teruskan carian jodoh ya!');
         }
 
-        $matchSessionId = DB::transaction(function () use ($user) {
-            // Cari calon yang sepadan: jantina lawan, bangsa sama, bukan diri sendiri.
-            $candidate = QueueEntry::where('gender', $user->oppositeGender())
+        $pref = $request->validate([
+            'pref_min_age' => ['nullable', 'integer', 'min:18', 'max:100'],
+            'pref_max_age' => ['nullable', 'integer', 'min:18', 'max:100'],
+            'pref_min_semester' => ['nullable', 'integer', 'min:1', 'max:20'],
+            'pref_max_semester' => ['nullable', 'integer', 'min:1', 'max:20'],
+        ]);
+
+        // Susun semula kalau min > max (supaya tak silap input).
+        if (! empty($pref['pref_min_age']) && ! empty($pref['pref_max_age']) && $pref['pref_min_age'] > $pref['pref_max_age']) {
+            [$pref['pref_min_age'], $pref['pref_max_age']] = [$pref['pref_max_age'], $pref['pref_min_age']];
+        }
+        if (! empty($pref['pref_min_semester']) && ! empty($pref['pref_max_semester']) && $pref['pref_min_semester'] > $pref['pref_max_semester']) {
+            [$pref['pref_min_semester'], $pref['pref_max_semester']] = [$pref['pref_max_semester'], $pref['pref_min_semester']];
+        }
+
+        $matchSessionId = DB::transaction(function () use ($user, $pref) {
+            $query = QueueEntry::where('gender', $user->oppositeGender())
                 ->where('race', $user->race)
-                ->where('user_id', '!=', $user->id)
-                ->orderBy('created_at')
-                ->lockForUpdate()
-                ->first();
+                ->where('user_id', '!=', $user->id);
+
+            // Calon kena ikut keutamaan SAYA (kalau saya set umur/semester yang dimahukan).
+            if (! empty($pref['pref_min_age'])) {
+                $query->where(function ($q) use ($pref) {
+                    $q->whereNull('age')->orWhere('age', '>=', $pref['pref_min_age']);
+                });
+            }
+            if (! empty($pref['pref_max_age'])) {
+                $query->where(function ($q) use ($pref) {
+                    $q->whereNull('age')->orWhere('age', '<=', $pref['pref_max_age']);
+                });
+            }
+            if (! empty($pref['pref_min_semester'])) {
+                $query->where(function ($q) use ($pref) {
+                    $q->whereNull('semester')->orWhere('semester', '>=', $pref['pref_min_semester']);
+                });
+            }
+            if (! empty($pref['pref_max_semester'])) {
+                $query->where(function ($q) use ($pref) {
+                    $q->whereNull('semester')->orWhere('semester', '<=', $pref['pref_max_semester']);
+                });
+            }
+
+            // ...dan calon yang dah set keutamaan dia sendiri pula kena padan dengan SAYA (mutual).
+            $query->where(function ($q) use ($user) {
+                $q->whereNull('pref_min_age')->orWhere('pref_min_age', '<=', $user->age ?? 18);
+            })->where(function ($q) use ($user) {
+                $q->whereNull('pref_max_age')->orWhere('pref_max_age', '>=', $user->age ?? 999);
+            })->where(function ($q) use ($user) {
+                $q->whereNull('pref_min_semester')->orWhere('pref_min_semester', '<=', $user->semester ?? 1);
+            })->where(function ($q) use ($user) {
+                $q->whereNull('pref_max_semester')->orWhere('pref_max_semester', '>=', $user->semester ?? 999);
+            });
+
+            $candidate = $query->orderBy('created_at')->lockForUpdate()->first();
 
             // Guna 1 credit setiap kali tekan "Cari Jodoh"
             $user->decrement('credits');
@@ -44,6 +90,7 @@ class MatchController extends Controller
                     'user_a_id' => $candidate->user_id,
                     'user_b_id' => $user->id,
                     'status' => 'active',
+                    'origin' => 'random',
                     'expires_at' => now()->addMinutes(2),
                 ]);
 
@@ -54,6 +101,12 @@ class MatchController extends Controller
                 'user_id' => $user->id,
                 'gender' => $user->gender,
                 'race' => $user->race,
+                'age' => $user->age,
+                'semester' => $user->semester,
+                'pref_min_age' => $pref['pref_min_age'] ?? null,
+                'pref_max_age' => $pref['pref_max_age'] ?? null,
+                'pref_min_semester' => $pref['pref_min_semester'] ?? null,
+                'pref_max_semester' => $pref['pref_max_semester'] ?? null,
             ]);
 
             return null;
@@ -154,6 +207,10 @@ class MatchController extends Controller
             return response()->json(['error' => 'Sesi sembang ini sudah tamat.'], 422);
         }
 
+        if ($match->isBlocked()) {
+            return response()->json(['error' => 'Sembang ini sedang disekat.', 'blocked' => true], 422);
+        }
+
         $message = Message::create([
             'match_session_id' => $match->id,
             'sender_id' => $user->id,
@@ -187,15 +244,20 @@ class MatchController extends Controller
         return response()->json([
             'status' => $match->status,
             'revealed' => $match->isRevealed(),
-            'partner_name' => $match->isRevealed() ? $partner->full_name : null,
+            'partner_name' => $match->isRevealed() ? $partner->displayName() : null,
+            'partner_photo' => $match->isRevealed() ? $partner->profile_photo : null,
+            'partner_avatar_fallback' => $partner->avatarFallback(),
             'i_loved' => $match->lovedBy($user),
             'partner_loved' => $match->lovedBy($partner),
             'seconds_left' => $match->isRevealed() ? null : max(0, now()->diffInSeconds($match->expires_at, false)),
+            'blocked' => $match->isBlocked(),
+            'blocked_by_me' => $match->blockedByUser($user),
             'messages' => $messages,
         ]);
     }
 
-    // Tekan butang "Suka" / Love
+    // Tekan butang "Suka" / Love - kalau kedua-dua tekan, sesi jadi "revealed"
+    // (= jadi kawan kekal, boleh sembang tanpa had & akan muncul dalam senarai Kawan).
     public function love(Request $request, MatchSession $match)
     {
         $user = $request->user();
@@ -222,15 +284,61 @@ class MatchController extends Controller
         return response()->json(['ok' => true, 'revealed' => $match->isRevealed()]);
     }
 
+    // "Tamatkan sembang" - hanya sah utk sesi yang masih anonymous/aktif (skip stranger).
+    // Sesi yang dah "revealed" (kawan) tak boleh ditamatkan macam ni - guna Block/Buang Kawan.
     public function leave(Request $request, MatchSession $match)
     {
         $user = $request->user();
         $this->authorizeMatch($match, $user);
+
+        if ($match->status === 'revealed') {
+            return back()->with('error', 'Anda berkawan dengan orang ini. Guna fungsi Sekat atau Buang Kawan kalau perlu.');
+        }
 
         if ($match->status !== 'ended') {
             $match->update(['status' => 'ended', 'ended_at' => now()]);
         }
 
         return redirect()->route('dashboard')->with('status', 'Sesi sembang ditamatkan.');
+    }
+
+    // Sekat kawan - sembang dibekukan sehingga dibuka semula oleh org yang menyekat.
+    public function block(Request $request, MatchSession $match)
+    {
+        $user = $request->user();
+        $this->authorizeMatch($match, $user);
+
+        abort_unless($match->status === 'revealed', 403);
+
+        if (! $match->blocked_by) {
+            $match->update(['blocked_by' => $user->id]);
+        }
+
+        return back()->with('status', 'Sembang dengan kawan ini telah disekat. Anda boleh buka sekatan bila-bila masa.');
+    }
+
+    public function unblock(Request $request, MatchSession $match)
+    {
+        $user = $request->user();
+        $this->authorizeMatch($match, $user);
+
+        abort_unless($match->blocked_by === $user->id, 403);
+
+        $match->update(['blocked_by' => null]);
+
+        return back()->with('status', 'Sekatan dibuka. Anda boleh sembang semula sekarang.');
+    }
+
+    // Buang kawan secara kekal - lain dengan Block (sementara), ini hilangkan terus dari senarai Kawan.
+    public function unfriend(Request $request, MatchSession $match)
+    {
+        $user = $request->user();
+        $this->authorizeMatch($match, $user);
+
+        abort_unless($match->status === 'revealed', 403);
+
+        $match->update(['status' => 'ended', 'ended_at' => now()]);
+
+        return redirect()->route('friends.index')->with('status', 'Kawan ini telah dibuang dari senarai.');
     }
 }

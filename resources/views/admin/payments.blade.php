@@ -13,8 +13,8 @@
 
     @forelse ($pending as $payment)
         <div class="payment-row">
-            <a href="{{ asset('storage/' . $payment->receipt_path) }}" target="_blank">
-                <img class="receipt-thumb" src="{{ asset('storage/' . $payment->receipt_path) }}" alt="Resit">
+            <a href="{{ $payment->receiptSrc() }}" target="_blank">
+                <img class="receipt-thumb" src="{{ $payment->receiptSrc() }}" alt="Resit">
             </a>
             <div class="info">
                 <b>{{ $payment->payer_full_name }}</b><br>
@@ -43,8 +43,8 @@
 
     @forelse ($recent as $payment)
         <div class="payment-row">
-            <a href="{{ asset('storage/' . $payment->receipt_path) }}" target="_blank">
-                <img class="receipt-thumb" src="{{ asset('storage/' . $payment->receipt_path) }}" alt="Resit">
+            <a href="{{ $payment->receiptSrc() }}" target="_blank">
+                <img class="receipt-thumb" src="{{ $payment->receiptSrc() }}" alt="Resit">
             </a>
             <div class="info">
                 <b>{{ $payment->payer_full_name }}</b><br>

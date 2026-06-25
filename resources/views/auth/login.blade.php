@@ -3,7 +3,7 @@
 @section('content')
 
 <div class="hero">
-    <div class="heart">💞</div>
+    <div class="heart-wrap"><span class="heart">💞</span></div>
     <h1>Jodoh Awak Mungkin Sedang Online Sekarang</h1>
     <p>Setiap padanan adalah misteri, sehinggalah hati kalian berdua kata "ya".<br>Log masuk dan mulakan carian.</p>
 </div>

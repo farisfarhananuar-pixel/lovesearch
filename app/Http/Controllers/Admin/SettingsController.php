@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Support\ImageCompressor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -12,17 +13,19 @@ class SettingsController extends Controller
 {
     public function edit()
     {
-        $qrPath = Setting::get('qr_code_path');
+        $qrData = Setting::get('qr_code_data');
 
-        return view('admin.settings', compact('qrPath'));
+        return view('admin.settings', compact('qrData'));
     }
 
     public function updateQr(Request $request)
     {
         $request->validate(['qr_code' => ['required', 'image', 'max:5120']]);
 
-        $path = $request->file('qr_code')->store('qr', 'public');
-        Setting::set('qr_code_path', $path);
+        // Simpan terus dalam DB sebagai base64 - elak QR "hilang" bila storage
+        // server di-reset (contoh: lepas redeploy di Railway).
+        $dataUri = ImageCompressor::toDataUri($request->file('qr_code'), 'document', 700);
+        Setting::set('qr_code_data', $dataUri);
 
         return back()->with('status', 'QR code bayaran berjaya dikemaskini.');
     }

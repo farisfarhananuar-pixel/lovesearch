@@ -13,10 +13,13 @@
     <p style="font-size:13px;color:#777;margin-bottom:12px;">
         Upload QR code DuitNow/bank anda di sini. Ini akan dipaparkan kepada user semasa mereka nak beli credit.
     </p>
+    <p style="font-size:11.5px;color:#9b8ab3;margin-bottom:12px;">
+        ℹ️ Gambar disimpan terus dalam pangkalan data (bukan storage server) supaya tidak hilang selepas redeploy.
+    </p>
 
-    @if ($qrPath)
+    @if ($qrData)
         <div class="qr-box">
-            <img src="{{ asset('storage/' . $qrPath) }}" alt="QR Code Semasa">
+            <img src="{{ $qrData }}" alt="QR Code Semasa">
         </div>
     @else
         <p style="font-size:13px;color:#c4304a;margin-bottom:12px;">⚠️ Belum ada QR code diupload lagi.</p>
