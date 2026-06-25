@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,14 @@ class PaymentController extends Controller
                 'approved_by' => $request->user()->id,
                 'approved_at' => now(),
             ]);
+
+            Notification::send(
+                $payment->user_id,
+                'credit',
+                'Credit anda telah masuk!',
+                $payment->package_credits.' credit telah ditambah ke akaun anda.',
+                route('payment.history')
+            );
         });
 
         return back()->with('status', 'Pembayaran diluluskan. Credit telah masuk ke akaun user.');
@@ -47,6 +56,14 @@ class PaymentController extends Controller
             'approved_by' => $request->user()->id,
             'approved_at' => now(),
         ]);
+
+        Notification::send(
+            $payment->user_id,
+            'credit',
+            'Pembayaran anda ditolak',
+            'Sila semak semula resit/maklumat pembayaran anda atau hubungi admin.',
+            route('payment.history')
+        );
 
         return back()->with('status', 'Pembayaran ditolak.');
     }

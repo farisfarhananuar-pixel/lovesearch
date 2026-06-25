@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Message;
 use App\Models\MatchSession;
+use App\Models\Notification;
 use App\Models\QueueEntry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -40,32 +41,33 @@ class MatchController extends Controller
             [$pref['pref_min_semester'], $pref['pref_max_semester']] = [$pref['pref_max_semester'], $pref['pref_min_semester']];
         }
 
-        $matchSessionId = DB::transaction(function () use ($user, $pref) {
-            $query = QueueEntry::where('gender', $user->oppositeGender())
-                ->where('race', $user->race)
-                ->where('user_id', '!=', $user->id);
+        // Kalau user tekan "teruskan tanpa filter" pada popup, kita buang terus keutamaan dia.
+        $ignorePref = $request->boolean('ignore_pref');
+        if ($ignorePref) {
+            $pref = [
+                'pref_min_age' => null,
+                'pref_max_age' => null,
+                'pref_min_semester' => null,
+                'pref_max_semester' => null,
+            ];
+        }
 
-            // Calon kena ikut keutamaan SAYA (kalau saya set umur/semester yang dimahukan).
-            if (! empty($pref['pref_min_age'])) {
-                $query->where(function ($q) use ($pref) {
-                    $q->whereNull('age')->orWhere('age', '>=', $pref['pref_min_age']);
-                });
+        $hasPref = ! empty($pref['pref_min_age']) || ! empty($pref['pref_max_age'])
+            || ! empty($pref['pref_min_semester']) || ! empty($pref['pref_max_semester']);
+
+        // Kalau user set filter (dan belum confirm nak ignore), semak dulu ada ke tak calon yang
+        // sepadan SEBELUM kita potong credit / masukkan dia dalam queue. Kalau tak ada, jangan terus
+        // proceed - bagi balik flag supaya frontend papar popup tanya nak teruskan rawak atau tunggu ikut filter.
+        if ($hasPref && ! $ignorePref && ! $request->boolean('confirmed_wait')) {
+            $candidateExists = $this->buildCandidateQuery($user, $pref)->exists();
+
+            if (! $candidateExists) {
+                return redirect()->route('dashboard')->with('no_filter_match', true)->withInput();
             }
-            if (! empty($pref['pref_max_age'])) {
-                $query->where(function ($q) use ($pref) {
-                    $q->whereNull('age')->orWhere('age', '<=', $pref['pref_max_age']);
-                });
-            }
-            if (! empty($pref['pref_min_semester'])) {
-                $query->where(function ($q) use ($pref) {
-                    $q->whereNull('semester')->orWhere('semester', '>=', $pref['pref_min_semester']);
-                });
-            }
-            if (! empty($pref['pref_max_semester'])) {
-                $query->where(function ($q) use ($pref) {
-                    $q->whereNull('semester')->orWhere('semester', '<=', $pref['pref_max_semester']);
-                });
-            }
+        }
+
+        $matchSessionId = DB::transaction(function () use ($user, $pref) {
+            $query = $this->buildCandidateQuery($user, $pref);
 
             // ...dan calon yang dah set keutamaan dia sendiri pula kena padan dengan SAYA (mutual).
             $query->where(function ($q) use ($user) {
@@ -163,6 +165,39 @@ class MatchController extends Controller
         return redirect()->route('dashboard')->with('status', 'Carian dibatalkan. Credit anda dikembalikan.');
     }
 
+    // Query asas untuk cari calon dalam queue ikut keutamaan SAYA (extract supaya boleh
+    // dipakai untuk semakan dulu (exists check) dan masa proses match sebenar - elak duplicate code.
+    private function buildCandidateQuery($user, array $pref)
+    {
+        $query = QueueEntry::where('gender', $user->oppositeGender())
+            ->where('race', $user->race)
+            ->where('user_id', '!=', $user->id);
+
+        // Calon kena ikut keutamaan SAYA (kalau saya set umur/semester yang dimahukan).
+        if (! empty($pref['pref_min_age'])) {
+            $query->where(function ($q) use ($pref) {
+                $q->whereNull('age')->orWhere('age', '>=', $pref['pref_min_age']);
+            });
+        }
+        if (! empty($pref['pref_max_age'])) {
+            $query->where(function ($q) use ($pref) {
+                $q->whereNull('age')->orWhere('age', '<=', $pref['pref_max_age']);
+            });
+        }
+        if (! empty($pref['pref_min_semester'])) {
+            $query->where(function ($q) use ($pref) {
+                $q->whereNull('semester')->orWhere('semester', '>=', $pref['pref_min_semester']);
+            });
+        }
+        if (! empty($pref['pref_max_semester'])) {
+            $query->where(function ($q) use ($pref) {
+                $q->whereNull('semester')->orWhere('semester', '<=', $pref['pref_max_semester']);
+            });
+        }
+
+        return $query;
+    }
+
     private function authorizeMatch(MatchSession $match, $user)
     {
         abort_unless($match->user_a_id === $user->id || $match->user_b_id === $user->id, 403);
@@ -217,6 +252,20 @@ class MatchController extends Controller
             'body' => $request->input('body'),
             'created_at' => now(),
         ]);
+
+        // Bagi notification kat partner kalau ni sembang kawan kekal (revealed) - untuk sembang
+        // misteri/anonymous yang masih dalam 2 minit tu tak perlu sebab dia memang sedang live chat.
+        if ($match->status === 'revealed') {
+            $partner = $match->partnerOf($user);
+
+            Notification::send(
+                $partner->id,
+                'message',
+                $user->displayName().' menghantar mesej',
+                str($request->input('body'))->limit(60),
+                route('match.show', $match->id)
+            );
+        }
 
         return response()->json(['ok' => true, 'message_id' => $message->id]);
     }

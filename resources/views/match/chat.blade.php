@@ -114,6 +114,17 @@
     <button class="send" id="sendBtn">➤</button>
 </div>
 
+@if ($match->status !== 'revealed' && $match->status !== 'ended')
+<div style="text-align:center; padding:8px 16px 90px;">
+    <form method="POST" action="{{ route('match.leave', $match->id) }}" onsubmit="return confirm('Tak nak sembang dengan orang ni? Sesi akan ditamatkan dan anda akan dibawa balik ke Utama.');">
+        @csrf
+        <button type="submit" style="background:none; border:none; color:var(--text-soft); font-size:12px; text-decoration:underline; cursor:pointer; padding:6px;">
+            🚪 Tak nak sembang, tamatkan sesi ini
+        </button>
+    </form>
+</div>
+@endif
+
 <script>
 const pollUrl = '{{ route("match.poll", $match->id) }}';
 const sendUrl = '{{ route("match.message", $match->id) }}';

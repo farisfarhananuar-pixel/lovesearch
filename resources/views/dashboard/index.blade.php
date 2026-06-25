@@ -18,35 +18,92 @@
     </a>
 @endif
 
-<details class="pref-panel">
+<details class="pref-panel" {{ session('no_filter_match') ? 'open' : '' }}>
     <summary>🎯 Keutamaan padanan (optional)</summary>
     <div class="pref-body">
         <p style="font-size:12px; color:var(--text-soft); margin:0 0 10px;">Tetapkan julat umur/semester yang anda mahu dipadankan. Boleh tinggalkan kosong kalau tak kisah.</p>
         <form method="POST" action="{{ route('match.search') }}" id="search-form">
             @csrf
+            <input type="hidden" name="ignore_pref" id="ignore-pref-input" value="0">
+            <input type="hidden" name="confirmed_wait" id="confirmed-wait-input" value="0">
             <div class="field-row">
                 <div class="field">
                     <label>Umur dari</label>
-                    <input type="number" name="pref_min_age" min="18" max="100" placeholder="18">
+                    <input type="number" name="pref_min_age" min="18" max="100" placeholder="18" value="{{ old('pref_min_age') }}">
                 </div>
                 <div class="field">
                     <label>Umur hingga</label>
-                    <input type="number" name="pref_max_age" min="18" max="100" placeholder="30">
+                    <input type="number" name="pref_max_age" min="18" max="100" placeholder="30" value="{{ old('pref_max_age') }}">
                 </div>
             </div>
             <div class="field-row">
                 <div class="field">
                     <label>Semester dari</label>
-                    <input type="number" name="pref_min_semester" min="1" max="20" placeholder="1">
+                    <input type="number" name="pref_min_semester" min="1" max="20" placeholder="1" value="{{ old('pref_min_semester') }}">
                 </div>
                 <div class="field">
                     <label>Semester hingga</label>
-                    <input type="number" name="pref_max_semester" min="1" max="20" placeholder="8">
+                    <input type="number" name="pref_max_semester" min="1" max="20" placeholder="8" value="{{ old('pref_max_semester') }}">
                 </div>
             </div>
         </form>
     </div>
 </details>
+
+@if (session('no_filter_match'))
+<div id="no-filter-modal" class="modal-overlay">
+    <div class="modal-box">
+        <div style="font-size:34px; margin-bottom:6px;">😕</div>
+        <h3 style="margin:0 0 8px;">Tiada calon sepadan</h3>
+        <p style="font-size:13px; color:var(--text-soft); margin:0 0 16px;">
+            Buat masa ini tiada sesiapa yang sepadan dengan keutamaan (umur/semester) yang anda set.
+            Nak teruskan cari secara <b>rawak</b> tanpa ikut keutamaan tu, atau tunggu dalam senarai
+            sehingga ada calon yang sepadan?
+        </p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            <button type="button" id="btn-random-anyway" class="big-search-btn" style="width:100%;">
+                💘 Teruskan rawak (tanpa filter)
+            </button>
+            <button type="button" id="btn-wait-filter" class="btn-secondary" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); background:transparent;">
+                Tunggu ikut keutamaan saya
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,.45);
+        display: flex; align-items: center; justify-content: center;
+        padding: 20px; z-index: 999;
+    }
+    .modal-box {
+        background: var(--card-bg, #fff); border-radius: 16px;
+        padding: 22px; max-width: 360px; width: 100%; text-align: center;
+    }
+</style>
+
+<script>
+    (function () {
+        var modal = document.getElementById('no-filter-modal');
+        var form = document.getElementById('search-form');
+        var ignoreInput = document.getElementById('ignore-pref-input');
+
+        document.getElementById('btn-random-anyway').addEventListener('click', function () {
+            ignoreInput.value = '1';
+            form.submit();
+        });
+
+        document.getElementById('btn-wait-filter').addEventListener('click', function () {
+            // Hantar semula form ikut keutamaan asal, terus masuk queue (skip semakan "ada calon ke tak"
+            // sebab user dah confirm dia okay tunggu).
+            document.getElementById('confirmed-wait-input').value = '1';
+            form.submit();
+        });
+    })();
+</script>
+@endif
+
 
 <div class="search-btn-wrap">
     <button class="big-search-btn" type="submit" form="search-form" {{ $user->credits < 1 ? 'disabled' : '' }}>

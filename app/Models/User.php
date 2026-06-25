@@ -45,6 +45,16 @@ class User extends Authenticatable
         return $this->hasMany(Payment::class);
     }
 
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class)->latest();
+    }
+
+    public function unreadNotificationsCount(): int
+    {
+        return $this->notifications()->whereNull('read_at')->count();
+    }
+
     // Nama yang dipaparkan dalam chat/senarai kawan - guna display_name kalau
     // user dah set, kalau tak guna full_name (nama pendaftaran).
     public function displayName(): string

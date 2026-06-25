@@ -8,6 +8,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FriendController;
 use App\Http\Controllers\MatchController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -50,6 +51,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/match/{match}/block', [MatchController::class, 'block'])->name('match.block');
     Route::post('/match/{match}/unblock', [MatchController::class, 'unblock'])->name('match.unblock');
     Route::post('/match/{match}/unfriend', [MatchController::class, 'unfriend'])->name('match.unfriend');
+
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/poll', [NotificationController::class, 'poll'])->name('notifications.poll');
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
 
     // Kawan / Contacts
     Route::get('/friends', [FriendController::class, 'index'])->name('friends.index');
