@@ -87,9 +87,14 @@ class User extends Authenticatable
     }
 
     // Semua sesi (match_sessions) yang user ni terlibat, tak kira sebagai A atau B.
+    // PENTING: OR kena di-wrap dalam closure - kalau tak, ->where('status', ...)
+    // yang ditambah kemudian (contoh dlm friendSessions()) akan silap precedence
+    // (jadi "user_a_id=? OR (user_b_id=? AND status=?)" bukan apa yang kita nak).
     public function matchSessions()
     {
-        return MatchSession::where('user_a_id', $this->id)->orWhere('user_b_id', $this->id);
+        return MatchSession::where(function ($q) {
+            $q->where('user_a_id', $this->id)->orWhere('user_b_id', $this->id);
+        });
     }
 
     // Senarai kawan (sesi yang dah "revealed" - permanent, boleh chat tanpa had).
