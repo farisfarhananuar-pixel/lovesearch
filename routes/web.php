@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FriendController;
+use App\Http\Controllers\GameController;
 use App\Http\Controllers\MatchController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
@@ -56,6 +57,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications/poll', [NotificationController::class, 'poll'])->name('notifications.poll');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+
+    Route::get('/game/uno', [GameController::class, 'unoMenu'])->name('game.uno.menu');
+    Route::get('/game/uno/solo', [GameController::class, 'unoSolo'])->name('game.uno.solo');
 
     // Kawan / Contacts
     Route::get('/friends', [FriendController::class, 'index'])->name('friends.index');

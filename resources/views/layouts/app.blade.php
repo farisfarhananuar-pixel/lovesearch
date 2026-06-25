@@ -174,6 +174,9 @@
         <a href="{{ route('payment.index') }}" class="{{ request()->routeIs('payment.*') ? 'active' : '' }}">
             <span class="ic">💎</span>Credit
         </a>
+        <a href="{{ route('game.uno.menu') }}" class="{{ request()->routeIs('game.*') ? 'active' : '' }}">
+            <span class="ic">🎴</span>UNO
+        </a>
         <a href="{{ route('profile.edit') }}" class="{{ request()->routeIs('profile.*') ? 'active' : '' }}">
             <span class="ic">🙍</span>Profil
         </a>
