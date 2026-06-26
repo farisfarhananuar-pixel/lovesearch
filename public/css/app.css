@@ -762,3 +762,24 @@ details.pref-panel .pref-body .field input { border-color: #ddc9f7; background: 
 @media (max-width: 420px) {
   .admin-stats { grid-template-columns: 1fr 1fr; }
 }
+
+/* ============================================================
+   Modal generik - dipakai oleh game UNO & Chess (pemilih warna/
+   kad, skrin tamat permainan, dll). Sebelum ni class .modal-overlay
+   / .modal-box dipakai dalam uno-solo.blade.php tapi tak pernah
+   didefinisikan kat mana-mana - jadi modal tu sebenarnya tak
+   bersalut langsung. Fix kat sini sekali utk semua guna.
+   ============================================================ */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(40, 18, 50, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; z-index: 1000;
+}
+.modal-box {
+  background: #fff; border-radius: var(--radius); padding: 26px 22px;
+  max-width: 340px; width: 100%; text-align: center; box-shadow: var(--shadow-lg);
+}
+
+@media (max-width: 420px) {
+  .modal-box { padding: 22px 18px; }
+}

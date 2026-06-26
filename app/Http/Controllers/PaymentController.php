@@ -31,7 +31,7 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'package' => ['required', 'in:50,100'],
             'payer_full_name' => ['required', 'string', 'max:150'],
-            'receipt' => ['required', 'image', 'max:5120'],
+            'receipt' => ['required', 'mimes:jpeg,jpg,png,gif,bmp,webp,heic,heif', 'max:15360'],
         ], [
             'payer_full_name.required' => 'Sila masukkan nama penuh seperti dalam akaun bank.',
             'receipt.required' => 'Sila muat naik resit pembayaran.',
