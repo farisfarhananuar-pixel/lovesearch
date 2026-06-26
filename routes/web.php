@@ -5,9 +5,11 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PaymentController as AdminPaymentController;
 use App\Http\Controllers\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ChessController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FriendController;
 use App\Http\Controllers\GameController;
+use App\Http\Controllers\UnoMultiplayerController;
 use App\Http\Controllers\MatchController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
@@ -58,8 +60,33 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
 
+    Route::get('/game', [GameController::class, 'hub'])->name('game.hub');
     Route::get('/game/uno', [GameController::class, 'unoMenu'])->name('game.uno.menu');
     Route::get('/game/uno/solo', [GameController::class, 'unoSolo'])->name('game.uno.solo');
+
+    Route::post('/game/uno/rooms', [UnoMultiplayerController::class, 'store'])->name('game.uno.store');
+    Route::get('/game/uno/rooms/{room}', [UnoMultiplayerController::class, 'show'])->name('game.uno.room');
+    Route::get('/game/uno/rooms/{room}/poll', [UnoMultiplayerController::class, 'poll'])->name('game.uno.poll');
+    Route::post('/game/uno/rooms/{room}/join', [UnoMultiplayerController::class, 'join'])->name('game.uno.join');
+    Route::post('/game/uno/rooms/{room}/decline', [UnoMultiplayerController::class, 'decline'])->name('game.uno.decline');
+    Route::post('/game/uno/rooms/{room}/leave', [UnoMultiplayerController::class, 'leave'])->name('game.uno.leave');
+    Route::post('/game/uno/rooms/{room}/start', [UnoMultiplayerController::class, 'start'])->name('game.uno.start');
+    Route::post('/game/uno/rooms/{room}/play', [UnoMultiplayerController::class, 'play'])->name('game.uno.play');
+    Route::post('/game/uno/rooms/{room}/draw', [UnoMultiplayerController::class, 'draw'])->name('game.uno.draw');
+    Route::post('/game/uno/rooms/{room}/pass', [UnoMultiplayerController::class, 'pass'])->name('game.uno.pass');
+    Route::post('/game/uno/rooms/{room}/call-uno', [UnoMultiplayerController::class, 'callUno'])->name('game.uno.call-uno');
+
+    // Chess
+    Route::get('/game/chess', [ChessController::class, 'menu'])->name('game.chess.menu');
+    Route::post('/game/chess/solo', [ChessController::class, 'startSolo'])->name('game.chess.solo');
+    Route::post('/game/chess/invite/{targetUser}', [ChessController::class, 'invite'])->name('game.chess.invite');
+    Route::get('/game/chess/rooms/{room}', [ChessController::class, 'show'])->name('game.chess.show');
+    Route::post('/game/chess/rooms/{room}/accept', [ChessController::class, 'accept'])->name('game.chess.accept');
+    Route::post('/game/chess/rooms/{room}/decline', [ChessController::class, 'decline'])->name('game.chess.decline');
+    Route::get('/game/chess/rooms/{room}/poll', [ChessController::class, 'poll'])->name('game.chess.poll');
+    Route::post('/game/chess/rooms/{room}/legal-moves', [ChessController::class, 'legalMoves'])->name('game.chess.legal-moves');
+    Route::post('/game/chess/rooms/{room}/move', [ChessController::class, 'move'])->name('game.chess.move');
+    Route::post('/game/chess/rooms/{room}/resign', [ChessController::class, 'resign'])->name('game.chess.resign');
 
     // Kawan / Contacts
     Route::get('/friends', [FriendController::class, 'index'])->name('friends.index');
